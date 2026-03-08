@@ -1,0 +1,156 @@
+-- Change 'TEXT' to 'VARCHAR' with a fixed length (e.g., 100 characters)
+-- Then apply the UNIQUE constraint
+ALTER TABLE motifs 
+MODIFY COLUMN sequence_data VARCHAR(100),
+ADD UNIQUE (sequence_data);
+
+-- Create the new "Motif Notes" Table
+CREATE TABLE motif_notes (
+    note_id INT AUTO_INCREMENT PRIMARY KEY,
+    motif_id INT, 
+    pitch_name VARCHAR(5), 
+    pitch_value INT, 
+    chord_id INT DEFAULT NULL, 
+    duration FLOAT, 
+    beat_position FLOAT, 
+    FOREIGN KEY (motif_id) REFERENCES motifs(motif_id) ON DELETE CASCADE,
+    FOREIGN KEY (chord_id) REFERENCES chords(chord_id) ON DELETE SET NULL
+);
+
+ALTER TABLE motifs 
+ADD COLUMN variation_id INT NULL AFTER motif_name;
+
+-- Add 'created_at' for automatic version tracking
+ALTER TABLE motifs 
+ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+
+ALTER TABLE motifs 
+ADD COLUMN track_type VARCHAR(50) NOT NULL DEFAULT 'melodic' 
+AFTER motif_name;
+
+ALTER TABLE chords DROP COLUMN vibe_tag;
+ALTER TABLE compositions DROP COLUMN root_note;
+ALTER TABLE chord_notes DROP COLUMN note_name;
+ALTER TABLE motif_notes DROP COLUMN pitch_name;
+ALTER TABLE genres DROP COLUMN default_root_note;
+ALTER TABLE motifs
+    DROP COLUMN rest_value, 
+    DROP COLUMN track_type, 
+    DROP COLUMN variation_id;
+    DROP COLUMN is_active;
+
+ALTER TABLE motifs 
+    ADD COLUMN motif_weight FLOAT DEFAULT 1.0,
+    ADD COLUMN occurrence_count INT DEFAULT 0,
+    ADD COLUMN motif_class ENUM('Opening', 'Chorus', 'Bridge', 'Build', 'De-escalation'),
+    ADD COLUMN track_id INT,
+    ADD COLUMN motif_pivot_offset FLOAT NULL,
+    ADD CONSTRAINT fk_track FOREIGN KEY (track_id) REFERENCES tracks(track_id);
+
+-- Scales: Moving the theoretical anchor
+ALTER TABLE scales ADD COLUMN default_root_note INT DEFAULT 60; -- MIDI Middle C
+
+-- Chords: Replacing vibe with structural classification
+ALTER TABLE chords ADD COLUMN chord_class VARCHAR(50); 
+
+-- User Preferences (EAV): Adding the Governance Floors
+INSERT INTO user_preferences (setting_key, setting_value) VALUES 
+('min_occurrence_count', '5'),
+('entropic_threshold', '0.1');
+
+-- Tracks: Setting the memory buffer
+ALTER TABLE tracks ADD COLUMN track_motif_limit INT DEFAULT 32;
+
+-- 1. Get rid of the old version entirely
+DROP TABLE IF EXISTS transitions;
+
+-- 2. Build the new "Handshake" structure
+CREATE TABLE transitions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    from_motif_id INT NOT NULL,
+    to_motif_id INT NOT NULL,
+    chord_id INT DEFAULT NULL,
+    weight FLOAT DEFAULT 1.0,
+    is_motif_endnote BOOLEAN DEFAULT FALSE,
+    CONSTRAINT fk_from_motif FOREIGN KEY (from_motif_id) REFERENCES motifs(motif_id) ON DELETE CASCADE,
+    CONSTRAINT fk_to_motif FOREIGN KEY (to_motif_id) REFERENCES motifs(motif_id) ON DELETE CASCADE,
+    CONSTRAINT fk_transition_chord FOREIGN KEY (chord_id) REFERENCES chords(chord_id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+ALTER TABLE transitions DROP COLUMN is_motif_endnote;
+
+-- Strip the Transition table down to its core Markov function
+-- It no longer cares about the chord context; the Motif handles that internally.
+ALTER TABLE transitions DROP FOREIGN KEY fk_transition_chord;
+ALTER TABLE transitions DROP COLUMN chord_id;
+
+-- Add the filename column to track generated assets
+ALTER TABLE compositions ADD COLUMN file_name VARCHAR(255) NOT NULL;
+
+-- Remove Scale constraints from the Identity layer
+ALTER TABLE artists DROP FOREIGN KEY artists_ibfk_2; -- Drop constraint first
+ALTER TABLE artists DROP COLUMN scale_id;
+
+ALTER TABLE genres DROP FOREIGN KEY genres_ibfk_1; 
+ALTER TABLE genres DROP COLUMN scale_id;
+
+-- Remove Artist constraint from the Motif layer
+-- Motifs should be universal building blocks, not artist-owned.
+ALTER TABLE motifs DROP FOREIGN KEY motifs_ibfk_1;
+ALTER TABLE motifs DROP COLUMN artist_id;
+
+-- Adding the scale_id column
+ALTER TABLE tracks ADD COLUMN scale_id INT;
+
+ALTER TABLE tracks 
+ADD CONSTRAINT fk_track_scale 
+FOREIGN KEY (scale_id) REFERENCES scales(scale_id) -- Match the actual PK name here
+ON DELETE SET NULL;
+
+-- Applying the Foreign Key Constraint
+ALTER TABLE tracks ADD CONSTRAINT fk_track_scale 
+    FOREIGN KEY (scale_id) REFERENCES scales(id) 
+    ON DELETE SET NULL;
+
+-- 1. Rename the motif-level offset to reflect its structural role
+ALTER TABLE motifs 
+CHANGE COLUMN micro_offset phrase_latency FLOAT DEFAULT 0.0;
+
+-- 2. Add the note-level humanization column to the event table
+ALTER TABLE motif_notes 
+ADD COLUMN micro_offset FLOAT DEFAULT 0.0;
+
+INSERT INTO user_preferences (setting_key, setting_value) 
+VALUES ('active_genre', 'Pop-Punk')
+ON DUPLICATE KEY UPDATE setting_value = 'Pop-Punk';
+
+INSERT INTO user_preferences (setting_key, setting_value) 
+VALUES 
+    ('active_genre', 'Pop-Punk'),
+    ('song_length_blocks', '4')
+ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value);
+
+CREATE TABLE song_blueprints (
+    blueprint_id INT AUTO_INCREMENT PRIMARY KEY,
+    genre_id INT NOT NULL,
+    block_position INT NOT NULL,
+    block_class ENUM('Intro', 'Verse', 'Pre-Chorus', 'Chorus', 'Bridge', 'Outro') NOT NULL,
+    FOREIGN KEY (genre_id) REFERENCES genres(genre_id) ON DELETE CASCADE
+);
+
+-- Updating the Motifs classification
+ALTER TABLE motifs 
+MODIFY COLUMN motif_class ENUM(
+    'Opening', 'Verse', 'Pre-Chorus', 'Chorus', 'Build', 
+    'De-escalation', 'Bridge', 'Entropic', 'Rest', 'Outro'
+);
+
+-- Updating the Song Blueprint roadmap
+ALTER TABLE song_blueprints 
+MODIFY COLUMN block_class ENUM(
+    'Opening', 'Verse', 'Pre-Chorus', 'Chorus', 'Build', 
+    'De-escalation', 'Bridge', 'Entropic', 'Rest', 'Outro'
+) NOT NULL;
+
+INSERT INTO artists (artist_id, artist_name, genre_id) 
+VALUES (1, 'Typebeat AI System', 1);
