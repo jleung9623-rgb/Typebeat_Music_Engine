@@ -4,6 +4,7 @@ import os
 from dotenv import load_dotenv
 from typing import TYPE_CHECKING
 
+# Initializes ability to contextualize and label functions specific to 'pandas' library
 if TYPE_CHECKING:
     import pandas as pd
 
@@ -11,7 +12,7 @@ class DatabaseManager:
     """Handles all communication with the MySQL database"""
 
     def __init__(self, host='localhost', user='root', database='typebeat_ai_v7'):
-        # Load .env file into the environment, overrides system defaults
+        # Load .env file into the environment, overrides system defaults for security
         load_dotenv(override=True)
         db_user = os.getenv("DB_USER")
         db_pass = os.getenv("DB_PASSWORD")
@@ -30,27 +31,35 @@ class DatabaseManager:
             )
             if self.connection.is_connected():
                 print(f"--- SUCCESS: Established connection with {db_name} ---")
+        # Error recognition for SQL-side initialization and connection errors
         except Error as e:
-            print(f"--- ERROR: Could not connect to database: {e} ---") # Error message for SQL-side initialization and connection errors
+            print(f"--- ERROR: Could not connect to database: {e} ---")
             exit()
     
     def fetch_user_preferences(self):
         """Fetches the EAV Key-Value pairs and converts them to a Python Dictionary."""
-        query = "SELECT setting_key, setting_value FROM user_preferences"
-        try:
-            with self.connection.cursor(dictionary=True) as cursor:
-                cursor.execute(query)
-                rows = cursor.fetchall()
 
-                # Convert List of rows into a dictionary
-                # e.g., {'default_bpm': '145', 'theme': 'dark'}
+        query = "SELECT setting_key, setting_value FROM user_preferences"
+        # Across all fetch functions, ensures memory allocated within try/except block is automatically freed regardless of outcome
+        # Implemented to prevent cursor initialization overlap, connection limits, and memory leaks
+        try:
+            with self.connection.cursor(dictionary=True) as cursor: # Initializes a "Contextualized Variable" that automatically frees itself once the code block completes.
+                cursor.execute(query)       # Executes query
+                rows = cursor.fetchall()    # Fetches all data in the rows the cursor is pointing at
+
+                # Dictionary Comprehension used to convert the list of user_preferences rows (Also dictionaries) into a consolidated dictionary
+                # e.g., {'default_bpm': '145', 'active_genre': 'Pop-Punk'}
                 return {row['setting_key']: row['setting_value'] for row in rows}
         except Error as e:
             print(f"--- ERROR: Failed to fetch user preferences: {e}")
-            return {}
+            return {} # Returns an empty element of the required data type (Dictionary in this case)
     
     def fetch_song_blueprint(self, genre_id):
-        """Retrieves the exact block sequence for the active genre"""
+        """
+        Import song structure layouts "Blueprints" (e.g. "Intro > Verse > Build > Chorus > Rest > etc.")
+        Retrieves the exact block sequence for the active genre
+        """
+
         query = """
             SELECT block_position, block_class
             FROM song_blueprints
@@ -63,11 +72,11 @@ class DatabaseManager:
                 return cursor.fetchall()
         except Error as e:
             print(f"Failed to fetch song structure: {e}")
-            return []
+            return [] # Returns an empty element of the required data type (List in this case)
     
-    # Import track data
     def fetch_track_data(self, genre_name):
         """Fetches all MIDI instruments associated with a specific genre"""
+
         query = """
             SELECT t.track_id, t.track_name, t.instrument_name, 
                    t.midi_channel, t.patch_number, t.scale_id, t.track_motif_limit
@@ -85,6 +94,7 @@ class DatabaseManager:
     
     def fetch_scale_collection(self, scale_id):
         """Fetches the mathematical intervals and root note for a specific scale"""
+
         query = "SELECT scale_name, intervals, default_root_note FROM scales WHERE scale_id = %s"
         try:
             with self.connection.cursor(dictionary=True) as cursor:
@@ -94,9 +104,9 @@ class DatabaseManager:
             print(f"--- ERROR: Failed to fetch scale logic: {e}")
             return None
     
-    # Import data for note/chord transitions (Profiles)
     def fetch_transitions(self, from_motif_id):
-        """Fetches the Markov Chain data for the AI's decision-making"""
+        """Fetches the Markov Chain data as the foundation for the AI's decision-making"""
+
         query = """
             SELECT t.to_motif_id, t.weight, m.motif_class AS target_class
             FROM transitions AS t
@@ -112,9 +122,9 @@ class DatabaseManager:
             print(f"--- ERROR: Failed to fetch motif transitions: {e}")
             return[]
     
-    # Import data for motifs (Note/chord sequences)
     def fetch_motifs(self, track_id, motif_class=None):
         """Fetches all curated motifs for the specified track. Additionally filters by "Class" of motif (Chorus, Bridge, etc.)"""
+
         query = """
             SELECT motif_id, motif_name, sequence_data, 
                    motif_pivot_offset, phrase_latency, motif_class
@@ -123,6 +133,7 @@ class DatabaseManager:
         """
         track_container = [track_id] # Temp container for track_id to accommodate for conditional variation logic
 
+        # Add 'motif_class' as an additional property of the original query and appends it to the list of elements related to 'track_id'
         if motif_class:
             query += " AND motif_class = %s"
             track_container.append(motif_class)
@@ -140,7 +151,7 @@ class DatabaseManager:
         Fetches high-definition musical data for a specific motif.
         Handshake: Uses 'motif_id' to bridge the motifs table to motif_notes.
         """
-        # Columns verified via DESCRIBE motif_notes output
+
         query = """
             SELECT pitch_value, duration, beat_position, micro_offset, chord_id
             FROM motif_notes
@@ -155,9 +166,9 @@ class DatabaseManager:
             print(f"--- ERROR: Failed to fetch motif details for ID {motif_id}: {e} ---")
             return []
     
-    # Import data for chord names and notes
     def fetch_chord_library(self):
-        """Fetches the musical data of every chord type in the database"""
+        """Fetches the musical data of every chord type and their related notes in the database"""
+
         query = """
             SELECT c.chord_id, c.chord_name, cn.note_name
             FROM chords AS c
@@ -172,10 +183,12 @@ class DatabaseManager:
             return []
         
     def process_user_upload(self, csv_file_path: str):
-        import pandas as pd
-        df = pd.read_csv(csv_file_path)
-        # Clean up whitespace in column names to prevent false 'Missing Column' errors
-        df.columns = df.columns.str.strip()
+        """Initializes set of required fields of data to be uploaded to SQL database"""
+
+        import pandas as pd # Locally imports 'pandas'; keeps data inflow to csv-specific functions
+        
+        df = pd.read_csv(csv_file_path)     # Initializes dataframe by reading the CSV file at 'csv_file_path' with pandas
+        df.columns = df.columns.str.strip() # Clean up whitespace in column names to prevent false 'Missing Column' errors
 
         # Designates list of essential columns for data to be uploaded to
         required = [
@@ -183,7 +196,7 @@ class DatabaseManager:
             'motif_class', 'pitch_value', 'duration', 'beat_position'
         ]
         
-        # Sets default values for non-required fields if user chooses not to upload information for them
+        # Sets default values for non-required fields if there was no data uploaded into them
         if 'micro_offset' not in df.columns:
             df['micro_offset'] = 0.0
         if 'phrase_latency' not in df.columns:
@@ -205,16 +218,16 @@ class DatabaseManager:
         Executes direct Motif -> Motif Note mapping.
         Prioritizes track-specific note assignment.
         """
+
         import pandas as pd
-        chosen_df: pd.DataFrame = df
+        chosen_df: pd.DataFrame = df # Assigns the pandas 'DataFrame' label to the parameter 'df'; validates that data type within Python
 
         try:
             with self.connection.cursor(dictionary=True) as cursor:
-                row = chosen_df.iloc[0]
+                row = chosen_df.iloc[0] # Assigns the information from the location of the CSV file's first row (As a single element from the pandas 'DataFrame')
 
                 cursor.execute("INSERT IGNORE INTO genres (genre_name) VALUES (%s)", (row['genre_name'], ))
                 cursor.execute("SELECT genre_id FROM genres WHERE genre_name = %s", (row['genre_name'], ))
-                genre_id = cursor.fetchone()['genre_id']
 
                 cursor.execute("""
                     INSERT INTO motifs (track_id, motif_name, motif_class, 
@@ -229,15 +242,17 @@ class DatabaseManager:
                     row.get('motif_weight', 1.0)
                 ))
 
-                motif_id = cursor.lastrowid
+                motif_id = cursor.lastrowid # Assigns the last row id (Auto-Incremented element from MySQL Connector) to motif id
 
-                sequence_token = f"M{motif_id}_T{row['track_id']}_{row['motif_class'][:3].upper()}"
+                sequence_token = f"M{motif_id}_T{row['track_id']}_{row['motif_class'][:3].upper()}" # Processes the token 'Taxonomy Label' for the motif sequence data
                 cursor.execute("UPDATE motifs SET sequence_data = %s WHERE motif_id = %s", (sequence_token, motif_id))
 
                 query = """
                     INSERT INTO motif_notes (motif_id, pitch_value, duration, beat_position, micro_offset, chord_id)
                     VALUES (%s, %s, %s, %s, %s, %s)
                 """
+
+                # Consolidates data from required upload fields into a sequential list
                 note_data = [
                     (
                         motif_id,
@@ -250,10 +265,11 @@ class DatabaseManager:
                     for _, r in chosen_df.iterrows()
                 ]
         
-                cursor.executemany(query, note_data)
+                cursor.executemany(query, note_data) # Executes the queries using each element of the note_data list as parameters, in sequential order
 
                 self.connection.commit()
 
+                # Acts as the "Receipt" of a successful CSV upload; visual indicator for users and future parameters for function calls in main
                 return {
                     "status": "success",
                     "motif_id": motif_id,
@@ -261,12 +277,14 @@ class DatabaseManager:
                     "note_count": len(note_data)
                 }
         except Exception as e:
-            self.connection.rollback()
+            self.connection.rollback() # Reverts the SQL database to the state before function was initiated (Does keep implicit record of table 'incremental id' changes)
             print(f"--- DATABASE ERROR: Bulk Import Failed: {e} ---")
             return {"status": "error", "message": str(e)}
         
     def save_composition_record(self, file_name, file_path, artist_id=1):
         """Utilizes the compositions table to save a record of the generated file."""
+
+        # 'created_at' logs current time at the moment of this line's insertion into the database using 'NOW()'
         query = "INSERT INTO compositions (file_name, file_path, artist_id, created_at) VALUES (%s, %s, %s, NOW())"
         try:
             with self.connection.cursor(dictionary=True) as cursor:
