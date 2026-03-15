@@ -47,7 +47,7 @@ def main():
     # Song data initialization - Assigns data for current genre, length of song motif blocks
     GENRE = preferences.get('active_genre', 'Pop-Punk')
     GENRE_ID = 1
-    SCORE_BLOCKS = int(preferences.get('song_length_blocks', 4))
+    SCORE_BLOCKS = int(str(preferences.get('song_length_blocks', 4)))
 
     print(f"--- Active Genre set to {GENRE} | Number of Song Blocks set to {SCORE_BLOCKS} ---")
 
