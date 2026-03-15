@@ -1,7 +1,7 @@
 import enum
 from sqlalchemy import Column, Integer, String, Float, ForeignKey, Table, Enum, TIMESTAMP, Text, Boolean
 from sqlalchemy.sql import func
-from sqlalchemy.orm import relationship, DeclarativeBase
+from sqlalchemy.orm import relationship, DeclarativeBase, Mapped, mapped_column
 
 # Motif Class Enum
 
@@ -104,8 +104,10 @@ class Chord(Base):
     id = Column(Integer, primary_key=True)
     chord_name = Column(String(28), nullable=False)
     chord_class = Column(String(50), nullable=False)
+    is_verified = Column(Boolean, default=False, nullable=False)
 
     chord_notes = relationship("ChordNote", back_populates="chord", cascade="all, delete-orphan")
+    motif_notes = relationship("MotifNote", back_populates="chord")
 
 class ChordNote(Base):
     __tablename__ = 'chord_notes'
@@ -136,17 +138,19 @@ class Genre(Base):
 
 class Motif(Base):
     __tablename__ = 'motifs'
-    id = Column(Integer, primary_key=True)
+    id = Column(primary_key=True)
     motif_name = Column(String(50), nullable=False)
-    sequence_data = Column(Text, nullable=False)
+    sequence_data: Mapped[str] = mapped_column(Text, nullable=False)
     motif_class = Column(Enum(MotifClass), nullable=False)
     phrase_latency = Column(Float)
     motif_pivot_offset = Column(Float) #--- Questionable Column (Needs evaluation) ---
     created_at = Column(TIMESTAMP, server_default=func.now())
-    # Relationship to Genres
+    
     notes = relationship("MotifNote", back_populates="motifs", cascade="all, delete-orphan")
     stats = relationship("MotifStat", back_populates="motif", cascade="all, delete-orphan", uselist=False)
     tracks = relationship("Track", secondary=track_motif_map, back_populates="motifs")
+    outgoing_transitions = relationship("Transition", foreign_keys="[Transition.from_motif_id]", back_populates="from_motif")
+    incoming_transitions = relationship("Transition", foreign_keys="[Transition.to_motif_id]", back_populates="to_motif")
 
 class MotifNote(Base):
     __tablename__ = 'motif_notes'
@@ -158,7 +162,7 @@ class MotifNote(Base):
     duration = Column(Float, nullable=False)
     micro_offset = Column(Float)
 
-    motifs = relationship("Motif", back_populates="notes")
+    chord = relationship("Chord", back_populates="motif_notes")
 
 class MotifStat(Base):
     __tablename__ = 'motif_stats'
@@ -167,7 +171,7 @@ class MotifStat(Base):
     occurence_count = Column(Integer, default=0)
     last_played = Column(TIMESTAMP, server_default=func.now())
 
-    motifs = relationship("Motif", back_populates="stats")
+    motif = relationship("Motif", back_populates="stats") # Has to be a unique variable due to the relationship being "One-to-One"
 
 class Scale(Base):
     __tablename__ = 'scales'
@@ -202,6 +206,9 @@ class Transition(Base):
     from_motif_id = Column(Integer, ForeignKey('motifs.id'), nullable=False)
     to_motif_id = Column(Integer, ForeignKey('motifs.id'), nullable=False)
     transition_weight = Column(Float, nullable=False)
+
+    from_motif = relationship("Motif", foreign_keys=[from_motif_id], back_populates="outgoing_transitions")
+    to_motif = relationship("Motif", foreign_keys=[to_motif_id], back_populates="incoming_transitions")
 
 class UserPreference(Base):
     __tablename__ = 'user_preferences'
