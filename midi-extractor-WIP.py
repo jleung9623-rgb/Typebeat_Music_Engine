@@ -1,10 +1,9 @@
 import mido
 import pandas as pd
-from database import DatabaseManager
+import os
 
-class MidiIngester:
-    def __init__(self, db_manager):
-        self.db = db_manager
+class MidiExtractor:
+    def __init__(self):
         self.ticks_per_beat = 480 # Standard MIDI resolution
 
     def process_file(self, file_path, genre_name, track_id, motif_class):

@@ -3,6 +3,9 @@
 #### Added
 - SQLAlchemy ORM integration for all related tables.
 - Alembic migration environment for version-controlled schema changes.
+- CSV Upload and static music data seeding scripts (`harmonic_map.py`, `metadata_sb_upload.py`, `motifs_upload.py`).
+- User interface for upload selection and routing.
+- Added `__init__.py` initialization file
 
 #### Changed
 - SQL database connection initialization now isolated and deferred to `connection.py`
@@ -10,6 +13,8 @@
 - Migration from raw SQL initialization to `alembic upgrade head`.
 - Renamed database to `typebeat_ai`
 - Updated `.env` requirements to include centralized DB_NAME.
+- Seeded basic chord and scale data into database
+- Segmented database and upload functions into specific faculties
 
 #### Removed
 - Legacy `database.py` raw SQL handlers.

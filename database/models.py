@@ -8,8 +8,11 @@ from sqlalchemy.orm import relationship, DeclarativeBase, Mapped, mapped_column
 class BlockClass(enum.Enum):
     OPENING = "Opening"
     VERSE = "Verse"
+    VERSE_B = "Verse-B"
     PRE_CHORUS = "Pre-Chorus"
     CHORUS = "Chorus"
+    CHORUS_B = "Chorus-B"
+    CHORUS_FINAL = "Chorus-Final"
     BUILD = "Build"
     DE_ESCALATION = "De-Escalation"
     BRIDGE = "Bridge"
@@ -20,8 +23,11 @@ class BlockClass(enum.Enum):
 class MotifClass(enum.Enum):
     OPENING = "Opening"
     VERSE = "Verse"
+    VERSE_B = "Verse-B"
     PRE_CHORUS = "Pre-Chorus"
     CHORUS = "Chorus"
+    CHORUS_B = "Chorus-B"
+    CHORUS_FINAL = "Chorus-Final"
     BUILD = "Build"
     DE_ESCALATION = "De-Escalation"
     BRIDGE = "Bridge"
@@ -39,11 +45,11 @@ class TrackClass(enum.Enum):
     PAD_ATMOSPHERE = "Pad_Atmosphere"
     FX = "FX"
 
-# 1. The Base: This is what Alembic 'looks' at in your env.py
+# The Base: This is what Alembic 'looks' at in your env.py
 class Base(DeclarativeBase):
     pass
 
-# 2. The Junction Tables: Handles Many-to-Many (One Motif can have Many Genres)
+# The Junction Tables: Handles Many-to-Many (One Motif can have Many Genres)
 
 artist_genre_map = Table(
     'artist_genre_map',
@@ -51,7 +57,7 @@ artist_genre_map = Table(
     Column('id', Integer, primary_key=True),
     Column('artist_id', Integer, ForeignKey('artists.id', ondelete="CASCADE"), nullable=False),
     Column('genre_id', Integer, ForeignKey('genres.id', ondelete="CASCADE"), nullable=False),
-    Column('affinity_score', Float) #--- Questionable Column (Needs evaluation) ---
+    Column('affinity_score', Float, default=1.0, server_default="1.0") #--- Questionable Column (Needs evaluation) ---
 )
 
 genre_blueprint_map = Table(
@@ -68,7 +74,7 @@ genre_track_map = Table(
     Column('id', Integer, primary_key=True),
     Column('genre_id', Integer, ForeignKey('genres.id'), nullable=False),
     Column('track_id', Integer, ForeignKey('tracks.id'), nullable=False),
-    Column('selection_weight', Float, nullable=False)
+    Column('selection_weight', Float, nullable=False, default=1.0, server_default="1.0")
 )
 
 track_motif_map = Table(
@@ -77,8 +83,8 @@ track_motif_map = Table(
     Column('id', Integer, primary_key=True),
     Column('track_id', Integer, ForeignKey('tracks.id'), nullable=False),
     Column('motif_id', Integer, ForeignKey('motifs.id'), nullable=False),
-    Column('selection_weight', Float, nullable=False),
-    Column('octave_shift', Integer, nullable=False)
+    Column('selection_weight', Float, nullable=False, default=1.0, server_default="1.0"),
+    Column('octave_shift', Integer, nullable=False, default=0, server_default="0")
 )
 
 track_scale_map = Table(
@@ -87,7 +93,7 @@ track_scale_map = Table(
     Column('id', Integer, primary_key=True),
     Column('track_id', Integer, ForeignKey('tracks.id'), nullable=False),
     Column('scale_id', Integer, ForeignKey('scales.id'), nullable=False),
-    Column('is_default', Boolean, default=False)
+    Column('is_default', Boolean, default=False, server_default="0")
 )
 
 # The Main Tables
@@ -97,6 +103,7 @@ class Artist(Base):
     id = Column(Integer, primary_key=True)
     artist_name = Column(String(100), nullable=False)
 
+    compositions = relationship("Composition", back_populates='artist')
     genres = relationship("Genre", secondary=artist_genre_map, back_populates="artists")
 
 class Chord(Base):
@@ -104,7 +111,7 @@ class Chord(Base):
     id = Column(Integer, primary_key=True)
     chord_name = Column(String(28), nullable=False)
     chord_class = Column(String(50), nullable=False)
-    is_verified = Column(Boolean, default=False, nullable=False)
+    is_verified = Column(Boolean, nullable=False, default=False, server_default="0")
 
     chord_notes = relationship("ChordNote", back_populates="chord", cascade="all, delete-orphan")
     motif_notes = relationship("MotifNote", back_populates="chord")
@@ -125,6 +132,8 @@ class Composition(Base):
     file_name = Column(String(255), nullable=False)
     created_at = Column(TIMESTAMP, server_default=func.now()) # Allows the DB to handle the timestamp automatically
 
+    artist = relationship("Artist", back_populates="compositions")
+
 class Genre(Base):
     __tablename__ = 'genres'
     id = Column(Integer, primary_key=True)
@@ -138,15 +147,15 @@ class Genre(Base):
 
 class Motif(Base):
     __tablename__ = 'motifs'
-    id = Column(primary_key=True)
+    id = Column(Integer, primary_key=True)
     motif_name = Column(String(50), nullable=False)
     sequence_data: Mapped[str] = mapped_column(Text, nullable=False)
     motif_class = Column(Enum(MotifClass), nullable=False)
-    phrase_latency = Column(Float)
-    motif_pivot_offset = Column(Float) #--- Questionable Column (Needs evaluation) ---
+    phrase_latency = Column(Float, nullable=False, default=0.0, server_default="0.0")
+    motif_pivot_offset = Column(Float, nullable=False, default=0.0, server_default="0.0") # "Boundary Line" of a motif, shorter motifs loop until this number is reached, longer motifs are cut off at this point
     created_at = Column(TIMESTAMP, server_default=func.now())
     
-    notes = relationship("MotifNote", back_populates="motifs", cascade="all, delete-orphan")
+    notes = relationship("MotifNote", back_populates="motif", cascade="all, delete-orphan")
     stats = relationship("MotifStat", back_populates="motif", cascade="all, delete-orphan", uselist=False)
     tracks = relationship("Track", secondary=track_motif_map, back_populates="motifs")
     outgoing_transitions = relationship("Transition", foreign_keys="[Transition.from_motif_id]", back_populates="from_motif")
@@ -160,15 +169,16 @@ class MotifNote(Base):
     pitch_value = Column(Integer, nullable=False)
     beat_position = Column(Float, nullable=False)
     duration = Column(Float, nullable=False)
-    micro_offset = Column(Float)
+    micro_offset = Column(Float, nullable=False, default=0.0, server_default="0.0")
 
     chord = relationship("Chord", back_populates="motif_notes")
+    motif = relationship("Motif", back_populates="notes")
 
 class MotifStat(Base):
     __tablename__ = 'motif_stats'
     id = Column(Integer, primary_key=True)
     motif_id = Column(Integer, ForeignKey('motifs.id', ondelete="CASCADE"), nullable=False)
-    occurence_count = Column(Integer, default=0)
+    occurrence_count = Column(Integer, nullable=False, default=0, server_default="0")
     last_played = Column(TIMESTAMP, server_default=func.now())
 
     motif = relationship("Motif", back_populates="stats") # Has to be a unique variable due to the relationship being "One-to-One"
@@ -195,6 +205,11 @@ class Track(Base):
     id = Column(Integer, primary_key=True)
     track_name = Column(String(100), nullable=False)
     track_class = Column(Enum(TrackClass), nullable=False)
+
+    midi_channel = Column(Integer, nullable=False, default=1, server_default="1")
+    instrument_name = Column(String(50), nullable=True)
+    patch_number = Column(Integer, nullable=True)
+    track_motif_limit = Column(Integer, nullable=True)
 
     genres = relationship("Genre", secondary=genre_track_map, back_populates="tracks")
     motifs = relationship("Motif", secondary=track_motif_map, back_populates="tracks")
