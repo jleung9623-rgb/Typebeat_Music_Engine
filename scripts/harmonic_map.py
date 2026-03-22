@@ -4,10 +4,10 @@ from database.models import Chord, ChordNote, Scale
 class HarmonicMap:
 
     def seed_basic_chords(self):
-        # Open session using centralized foundation
+        # Opens session using centralized foundation
         session = SessionLocal()
 
-        # Initializaiton: Note-Level Harmonic Elements (Sets base midi value at 60 for Middle C)
+        # Initializes note-Level Harmonic Elements (Sets base midi value at 60 for Middle C)
         roots = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
         base_midi = 60
 
@@ -41,7 +41,7 @@ class HarmonicMap:
 
                 for chord_type, intervals in chord_formulas.items():
 
-                    # Create chord entry
+                    # Creates chord entry
                     new_chord = Chord(
                         chord_name = f"{root}-{chord_type}",
                         chord_class = chord_type,
@@ -57,11 +57,11 @@ class HarmonicMap:
                     chords_added += 1
 
             session.commit()
-            print(f"SUCCESS: {chords_added} unique chords and their respective notes seeded.")
+            return {"status": "success", "message": f"Successfully seeded {chords_added} unique chords."}
 
         except Exception as e:
             session.rollback()
-            print(f"Error executing chord seeding process: {e}")
+            return {"status": "error", "message": f"Error executing chord seeding process: {e}"}
         finally:
             session.close()
 
@@ -112,11 +112,11 @@ class HarmonicMap:
                 scales_added += 1
 
             session.commit()
-            print(f"SUCCESS: {scales_added} unique scales seeded.")
+            return {"status": "success", "message": f"Successfully seeded {scales_added} unique scales."}
 
         except Exception as e:
             session.rollback()
-            print(f"Error executing scales seeding process: {e}")
+            return {"status": "error", "message": f"Error executing scales seeding process: {e}"}
         finally:
             session.close()
 

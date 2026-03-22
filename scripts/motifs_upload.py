@@ -1,10 +1,10 @@
 import pandas as pd
 from sqlalchemy import insert
 from database.connection import SessionLocal
-from database.models import Motif, MotifNote, track_motif_map, MotifClass, Transition, MotifStat
+from database.models import Motif, MotifNote, track_motif_map, SectionClass, Transition, MotifStat
 
 class CSVUploader:
-    def upload_motif(self, csv_file_path, motif_name, m_class_str, track_id, phrase_latency=0.0, pivot_offset=0.0, from_motif_id=None, transition_weight=1.0):
+    def upload_motif(self, csv_file_path, motif_name, m_class_str, track_id, phrase_latency=0.0, pivot_offset=0.0, from_motif_id=None, transition_weight=1.0, session=None):
         """
         Specialized Ingestor:
         1. Creates the Motif (Name/Metadata)
@@ -13,7 +13,12 @@ class CSVUploader:
         4. Bulk Inserts Notes (Performance)
         5. OPTIONAL: Creates a Transition from a previous Motif
         """
-        session = SessionLocal()
+
+        # Checks if external session is already active, creates a local session if not
+        external_session = session is not None
+        if not external_session:
+            session = SessionLocal()
+
         try:
             # Initializes DataFrame/DF Columns
             df = pd.read_csv(csv_file_path)
@@ -29,9 +34,10 @@ class CSVUploader:
             if df[required_columns].isnull().values.any():
                 raise ValueError(f"ERROR: CSV format rejected. Empty cells detected in required columns.")
 
-            # Initializes Enum from SQL Database
+            # Converts the user's input into a Blueprint Enum-readable data type for the database query
             try:
-                m_class_enum = MotifClass[m_class_str.upper()]
+                valid_class_str = m_class_str.upper().replace("-", "_").replace(" ", "_")
+                m_class_enum = SectionClass[valid_class_str]
             except KeyError:
                 raise ValueError(f"Invalid MotifClass: {m_class_str}. Check your Enum definitions.")
 
@@ -54,16 +60,20 @@ class CSVUploader:
             session.add(new_stats)
 
             # Links motif to track
-            junction_link = track_motif_map.insert().values(
-                track_id = track_id,
-                motif_id = new_motif.id,
-                selection_weight = 1.0,
-                octave_shift = 0
-            )
-            session.execute(junction_link)
+            try:
+                with session.begin_nested():
+                    junction_link = track_motif_map.insert().values(
+                        track_id = track_id,
+                        motif_id = new_motif.id,
+                        selection_weight = 1.0,
+                        octave_shift = 0
+                    )
+                    session.execute(junction_link)
+            except Exception as e:
+                raise ValueError(f"ERROR: Failed to link Motif to Track {track_id}. Ensure Track ID exists. Error: {e}")
 
-            # Generates metadata taxonomy token; uses Track ID and a truncated Class prefix (First 3 letters) for optimized indexing
-            new_motif.sequence_data = f"M{new_motif.id}_T{track_id}_{m_class_enum.name[:3]}"
+            # Generates metadata taxonomy token; uses a truncated Class prefix (First 3 letters) for optimized indexing
+            new_motif.sequence_data = f"M{new_motif.id}_{m_class_enum.name[:3]}"
 
             # Prepares notes in bulk
             notes_list = []
@@ -94,19 +104,33 @@ class CSVUploader:
                 session.add(new_transition)
                 transition_status = f"Linked from Motif ID {from_motif_id}"
 
-            session.commit()
+            # Only commits changes here in local instances
+            if not external_session:
+                session.commit()
+
+            # Success message will be used in `upload_interface.py`
             return {
                 "status": "success",
+                "message": f"Uploaded '{motif_name}' (ID: {new_motif.id}) with {len(notes_list)} notes.",
                 "motif_id": new_motif.id,
                 "notes": len(notes_list),
                 "transition": transition_status
             }
 
+        # Catches any outstanding/miscellaneous errors
         except Exception as e:
-            session.rollback()
+            if not external_session:
+                session.rollback()
+
+            # Checks whether a Chord ID that doesn't exist in the database is currently being used
+            error_msg = str(e)
+            if "foreign key constraint fails" in error_msg.lower() and "chords" in error_msg.lower():
+                return {"status": "error", "message": "ERROR: CSV contains a chord_id that does not exist in the database."}
+
             return {"status": "error", "message": str(e)}
         finally:
-            session.close()
+            if not external_session:
+                session.close()
 
 if __name__ == "__main__":
     engine = CSVUploader()

@@ -1,16 +1,22 @@
 #### [7.2.0-alpha] - 2026-03-14
 
 #### Added
-- SQLAlchemy ORM integration for all related tables.
-- Alembic migration environment for version-controlled schema changes.
+- `SQLAlchemy` ORM integration for all related tables.
+- `Alembic` migration environment for version-controlled schema changes.
+- `migrations` folder with an `env.py` script that configures Alembic environment
+- `versions` folder for Alembic save states
+- Folders for `scripts` (Core program files) and `database` (SQL Initialization and database models)
+- Added `__init__.py` initialization file for both folders
 - CSV Upload and static music data seeding scripts (`harmonic_map.py`, `metadata_sb_upload.py`, `motifs_upload.py`).
-- User interface for upload selection and routing.
-- Added `__init__.py` initialization file
+- User interface for upload selection and routing (`upload_interface`).
+- Note musical and temporal data pipeline using `midi_extractor.py`script
+- `docs` folder with new **Architectural Decision Record**
+- `data` folder for test data pertaining to each `upload_interface` option
 
 #### Changed
 - SQL database connection initialization now isolated and deferred to `connection.py`
-- Refactored `models.py` to use Declarative Base.
-- Migration from raw SQL initialization to `alembic upgrade head`.
+- Refactored database schema into `models.py` to use SQLAlchemy Declarative Base.
+- Migration from raw SQL initialization to using `alembic upgrade head` command.
 - Renamed database to `typebeat_ai`
 - Updated `.env` requirements to include centralized DB_NAME.
 - Seeded basic chord and scale data into database

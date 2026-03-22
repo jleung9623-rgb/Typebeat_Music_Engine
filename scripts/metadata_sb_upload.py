@@ -1,5 +1,5 @@
 import pandas as pd
-from database.models import Artist, Genre, artist_genre_map, genre_track_map, genre_blueprint_map, Track, TrackClass, SongBlueprint, BlockClass
+from database.models import Artist, Genre, artist_genre_map, genre_track_map, genre_blueprint_map, Track, TrackClass, SongBlueprint, SectionClass
 from database.connection import SessionLocal
 
 class CSVUploader:
@@ -38,7 +38,7 @@ class CSVUploader:
         df.columns = df.columns.str.strip()
 
         # Upload Validation - Returns targeted errors if the user failed to adhere to CSV upload protocol
-        required = self.upload_requirements.get(target)
+        required = self.upload_requirements.get(target.lower())
         if required:
             missing = [col for col in required if col not in df.columns]
             if missing: # Returns error if required columns not found in user CSV, based on consolidated list of "missing" fields
@@ -83,19 +83,24 @@ class CSVUploader:
 
                 # Initializes the relationship with a genre through an artist -> genre junction table
                 if genre:
-                    link = session.query(artist_genre_map).filter_by(
-                        artist_id = artist.id,
-                        genre_id = genre.id
+                    junction_link = session.query(artist_genre_map).filter(
+                        artist_genre_map.c.artist_id == artist.id,
+                        artist_genre_map.c.genre_id == genre.id
                     ).first()
 
                     # If genre exists with no association to the artist, adds a link through the `artist_genre_map` junction table
-                    if not link:
-                        link_init = artist_genre_map.insert().values(
-                            artist_id = artist.id,
-                            genre_id = genre.id,
-                            affinity_score = row.get('affinity_score', 1.0)
-                        )
-                        session.execute(link_init)
+                    if not junction_link:
+                        try:
+                            with session.begin_nested():
+                                link_init = artist_genre_map.insert().values(
+                                    artist_id = artist.id,
+                                    genre_id = genre.id,
+                                    affinity_score = row.get('affinity_score', 1.0)
+                                )
+                                session.execute(link_init)
+                        except Exception as e:
+                            print(f"Skipping duplicate or invalid link for artist {artist.id} to Genre {genre.id}.")
+
 
         return f"Successfully imported {len(df)} artists."
 
@@ -132,7 +137,7 @@ class CSVUploader:
             if not track:
                 track = Track(
                     track_name = row['track_name'],
-                    track_class = TrackClass[row['track_class'].upper()],
+                    track_class = TrackClass[row['track_class'].upper().replace("-", "_").replace(" ", "_")],
                     midi_channel = int(row['midi_channel']),
                     instrument_name = row.get('instrument_name'),
                     patch_number = int(row['patch_number']) if pd.notna(row.get('patch_number')) else None,
@@ -142,20 +147,24 @@ class CSVUploader:
                 session.flush() # Syncs with DB before establishing junction table relationship
             
             # Initializes the relationship with a track through a genre -> track junction table
-            link = session.query(genre_track_map).filter_by(
-                genre_id = genre.id,
-                track_id = track.id
+            junction_link = session.query(genre_track_map).filter(
+                genre_track_map.c.genre_id == genre.id,
+                genre_track_map.c.track_id == track.id
             ).first()
             
 
             # If track exists with no association to the genre, adds a link through the `genre_track_map` junction table
-            if not link:
-                link_init = genre_track_map.insert().values(
-                    genre_id = genre.id,
-                    track_id = track.id,
-                    selection_weight = row.get('selection_weight', 1.0)
-                )
-                session.execute(link_init)
+            if not junction_link:
+                try:
+                    with session.begin_nested():
+                        link_init = genre_track_map.insert().values(
+                            genre_id = genre.id,
+                            track_id = track.id,
+                            selection_weight = row.get('selection_weight', 1.0)
+                        )
+                        session.execute(link_init)
+                except Exception as e:
+                    print(f"Skipping duplicate or invalid link for Genre {genre.id} to Track {track.id}.")
 
         return f"Successfully imported {len(df)} tracks."
 
@@ -168,35 +177,47 @@ class CSVUploader:
             if not genre:
                 print(f"ERROR: Genre '{row['genre_name']}' not found for blueprint block")
                 continue
+            
+            # Sanitize the input for Enum mapping
+            try:
+                valid_class_str = row['block_class'].upper().replace("-", "_").replace(" ", "_")
+                b_class_enum = SectionClass[valid_class_str]
+            except KeyError:
+                print(f"ERROR: Invalid SectionClass '{row['block_class']}' for Blueprint Block")
+                continue
 
             # Selects the first unique blueprint entry detected based on both the block's class and temporal position within a song
             song_blueprint = session.query(SongBlueprint).filter_by(
-                block_class=BlockClass[row['block_class'].upper()],
+                block_class=b_class_enum,
                 block_position=row['block_position']
             ).first()
 
             # Adds a new blueprint entry with the required fields
             if not song_blueprint:
                 song_blueprint = SongBlueprint(
-                    block_class = BlockClass[row['block_class'].upper()],
+                    block_class = b_class_enum,
                     block_position = row['block_position']
                 )
                 session.add(song_blueprint)
                 session.flush() # Syncs with DB before establishing junction table relationship
 
             # Initializes the relationship with a blueprint through a genre -> blueprint junction table
-            link = session.query(genre_blueprint_map).filter_by(
-                genre_id = genre.id,
-                blueprint_id = song_blueprint.id
+            junction_link = session.query(genre_blueprint_map).filter(
+                genre_blueprint_map.c.genre_id == genre.id,
+                genre_blueprint_map.c.blueprint_id == song_blueprint.id
             ).first()
 
              # If blueprint exists with no association to the genre, adds a link through the `genre_blueprint_map` junction table
-            if not link:
-                link_init = genre_blueprint_map.insert().values(
-                    genre_id = genre.id,
-                    blueprint_id = song_blueprint.id
-                )
-                session.execute(link_init)
+            if not junction_link:
+                try:
+                    with session.begin_nested():
+                        link_init = genre_blueprint_map.insert().values(
+                            genre_id = genre.id,
+                            blueprint_id = song_blueprint.id
+                        )
+                        session.execute(link_init)
+                except Exception as e:
+                    print(f"Skipping duplicate or invalid link for Genre {genre.id} to Blueprint Block {song_blueprint.id}.")
 
         return f"Successfully imported {len(df)} blueprints blocks."
     
