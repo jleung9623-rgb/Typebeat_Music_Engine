@@ -1,5 +1,6 @@
 # Architectural Decision Record 0006 - Modular Architecture Distribution
 
+## Directory: database, scripts
 ## Tags: #SYS-ARCH, #CODE-ORG
 ## Status: Accepted
 

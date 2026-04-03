@@ -2,6 +2,5 @@ mysql-connector-python>=8.0.0
 python-dotenv>=1.0.0
 SQLAlchemy>=2.0.0
 alembic>=1.10.0
-music21>=9.1.0
 mido>=1.2.10
 pandas>=2.0.0

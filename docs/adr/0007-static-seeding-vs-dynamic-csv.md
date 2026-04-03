@@ -1,4 +1,6 @@
 # Architectural Decision Record 0007 - Static Seeding vs. Dynamic CSV Uploads
+
+## Module: harmonic_map.py, motifs_upload.py, metadata_sb_upload.py
 ## Tags: #DATA-FLOW, #SYS-ARCH
 ## Status: Accepted
 

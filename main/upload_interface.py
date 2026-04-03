@@ -64,6 +64,10 @@ def main_menu():
         elif choice == '1':
             print("\n--- SEEDING CHORDS ---")
             result = h_map.seed_basic_chords()
+
+            # Rebuilds the harmonic cache to reflect the newly seeded chord data for any upcoming motif uploads that rely on chord mapping
+            d_lib.chord_cache = d_lib.build_chord_cache() 
+            
             print(f"\nRESULT: {result['message']}")
             input("\nChords seeded. Press Enter to Continue...")
 

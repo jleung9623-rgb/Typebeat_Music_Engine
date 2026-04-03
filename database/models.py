@@ -214,9 +214,3 @@ class Transition(Base):
 
     from_motif = relationship("Motif", foreign_keys=[from_motif_id], back_populates="outgoing_transitions")
     to_motif = relationship("Motif", foreign_keys=[to_motif_id], back_populates="incoming_transitions")
-
-class UserPreference(Base):
-    __tablename__ = 'user_preferences'
-    id = Column(Integer, primary_key=True)
-    setting_key = Column(String(50), nullable=False)        # Label for default user setting
-    setting_value = Column(String(100), nullable=False)     # Parameter(s) for default user setting

@@ -1,3 +1,27 @@
+#### [7.2.1-alpha] - 2026-04-03
+
+#### Added
+- `main` folder created for core user-facing processes
+- `engine` folder created for musical engine scripts
+- `engine/data_initialization.py` for fetching track, blueprint, and metadata profiles
+- `engine/markov_engine.py` script created for low-level composition state generation
+- `engine/harmonic_analyzer.py` script created for motif transposition
+- `engine/midi_builder.py` script created for constructing final MIDI file
+- `main/main.py` script created for final user-facing song generation process
+- `engine/aliases.py` created for decoupled asymmetric input validation
+- Updated **ADR** entries #15-26
+
+#### Changed
+- Moved `upload_interface` into `main` folder
+- Move `midi_extractor.py` into `scripts` folder
+
+#### Removed
+- `UserPreference` class removed from `models.py`
+- Old `engine.py` script removed
+- Old `typebeat-v7.1` script removed
+- `test_20260306_193443.mid` file removed
+
+
 #### [7.2.0-alpha] - 2026-03-14
 
 #### Added
@@ -10,8 +34,9 @@
 - CSV Upload and static music data seeding scripts (`harmonic_map.py`, `metadata_sb_upload.py`, `motifs_upload.py`).
 - User interface for upload selection and routing (`upload_interface`).
 - Note musical and temporal data pipeline using `midi_extractor.py`script
-- `docs` folder with new **Architectural Decision Record**
+- `docs` folder with new **Architectural Decision Record** (ADR)
 - `data` folder for test data pertaining to each `upload_interface` option
+- Updated **ADR** entries #1-14
 
 #### Changed
 - SQL database connection initialization now isolated and deferred to `connection.py`
@@ -24,6 +49,7 @@
 
 #### Removed
 - Legacy `database.py` raw SQL handlers.
+
 
 #### [7.1.0-alpha] - 2026-03-11
 
