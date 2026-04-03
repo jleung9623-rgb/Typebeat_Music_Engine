@@ -10,10 +10,12 @@
 - `main/main.py` script created for final user-facing song generation process
 - `engine/aliases.py` created for decoupled asymmetric input validation
 - Updated **ADR** entries #15-26
+- `docs/ROADMAP.md` for potential future implementations
 
 #### Changed
 - Moved `upload_interface` into `main` folder
 - Move `midi_extractor.py` into `scripts` folder
+- Renamed `scripts` to `data-inflow`
 
 #### Removed
 - `UserPreference` class removed from `models.py`
