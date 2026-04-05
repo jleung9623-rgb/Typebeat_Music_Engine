@@ -15,7 +15,7 @@
 #### Changed
 - Moved `upload_interface` into `main` folder
 - Move `midi_extractor.py` into `scripts` folder
-- Renamed `scripts` to `data-inflow`
+- Renamed `scripts` to `data_inflow`
 
 #### Removed
 - `UserPreference` class removed from `models.py`

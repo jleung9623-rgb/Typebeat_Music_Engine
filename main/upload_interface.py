@@ -2,9 +2,9 @@ import os
 import sys
 
 # Imports logic from uploader faculties
-from scripts.harmonic_map import HarmonicMap
-from scripts.metadata_sb_upload import CSVUploader as MacroLibrary
-from scripts.motifs_upload import CSVUploader as DynamicLibrary
+from data_inflow.harmonic_map import HarmonicMap
+from data_inflow.metadata_sb_upload import CSVUploader as MacroLibrary
+from data_inflow.motifs_upload import CSVUploader as DynamicLibrary
 
 # Verifies the user's input matches a property in the Song Blueprint Enum constraints
 from database.connection import SessionLocal

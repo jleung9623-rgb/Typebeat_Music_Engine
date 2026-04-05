@@ -1,6 +1,7 @@
 # **Future Roadmap** 
 
 * Begin populating database to accommodate motif variations
+* Refactor SQL Database (Motif Metadata Tags, SQLAlchemy legacy code update)
 * Add protocol for unit testing
 * Expand routing registry for tracks table (To expand library of instruments, perhaps routing through a DAW)
 * API integration for DAWs (Ableton, etc.)
