@@ -167,7 +167,7 @@ class MotifNote(Base):
 class MotifStat(Base):
     __tablename__ = 'motif_stats'
     id = Column(Integer, primary_key=True)
-    motif_id = Column(Integer, ForeignKey('motifs.id', ondelete="CASCADE"), nullable=False)
+    motif_id = Column(Integer, ForeignKey('motifs.id', ondelete="CASCADE"), nullable=False, unique=True)
     occurrence_count = Column(Integer, nullable=False, default=0, server_default="0")   # Metadata log for frequency of motif played (To be used in higher-level Markov Chain generation logic)
     last_played = Column(TIMESTAMP, server_default=func.now())                          # Metadata log for timestamp of motif's last usage in the generation of a composition
 

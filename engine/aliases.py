@@ -1,3 +1,6 @@
+
+from database.models import SectionClass
+
 """
 Static configuration data and deterministic routing dictionaries.
 Quarantined from the main orchestrator to enforce separation of concerns.
@@ -42,4 +45,20 @@ ROOT_ALIASES = {
     "a": 69,
     "a#": 70, "bb": 70,
     "b": 71, "cb": 71
+}
+
+BLUEPRINT_BLOCK_LENGTHS = {
+    SectionClass.OPENING: 16.0,
+    SectionClass.VERSE: 16.0,
+    SectionClass.VERSE_B: 16.0,
+    SectionClass.PRE_CHORUS: 16.0,
+    SectionClass.CHORUS: 16.0,
+    SectionClass.CHORUS_B: 16.0,
+    SectionClass.CHORUS_FINAL: 32.0,
+    SectionClass.BUILD: 16.0,
+    SectionClass.DE_ESCALATION: 8.0,
+    SectionClass.BRIDGE: 16.0,
+    SectionClass.ENTROPIC: 16.0,
+    SectionClass.REST: 8.0,
+    SectionClass.OUTRO: 16.0
 }

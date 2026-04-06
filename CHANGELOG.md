@@ -1,3 +1,14 @@
+#### [7.2.2-alpha] - 2026-04-06
+
+#### Added
+- Unique constraint added to `MotifStat` column `motif_id` in `models.py`
+
+#### Changed
+- Fixed `harmonic_analyzer.py` and `markov_engine.py` logic to include motif-level **phrase latency** and **pivot offset** values
+
+#### Removed
+-
+
 #### [7.2.1-alpha] - 2026-04-03
 
 #### Added

@@ -1,4 +1,5 @@
 from database.models import Motif, MotifNote, track_motif_map, Transition
+from engine.aliases import BLUEPRINT_BLOCK_LENGTHS
 from sqlalchemy import func
 import random
 
@@ -58,10 +59,12 @@ def generate_timeline(session, track_id, blueprint_block, active_motif_id=None):
     
     # Initializes the 'clock' for the current block, including the current temporal location and the total length of the block (Both in beats)
     current_beats = 0
-    target_beats = blueprint_block['block_beat_length']
 
     # Initializes the classification for the current block based on its blueprint
     blueprint_block = blueprint_block['block_class']
+
+    # Grabs the length of each blueprint block based on its class
+    target_beats = BLUEPRINT_BLOCK_LENGTHS.get(blueprint_block, 16.0)
 
     # Selects motifs to use within the block container until the target beat length is reached
     while current_beats < target_beats:
@@ -138,9 +141,15 @@ def select_motif(session, track_id, blueprint_block, current_motif_id=None):
 def get_motif_duration(session, motif_id):
     """Obtains the motif duration by finding the furthest beat position reached after the final motif note's duration ends."""
 
-    # Sums each motif note's beat position and duration to find their endpoint, selecting the highest value out of the sums and returning the float as a singular value
+    # Queries the designated Motif ID, returning a set endpoint for the motif if available
+    motif = session.query(Motif).filter(Motif.id == motif_id).first()
+
+    if motif and motif.motif_pivot_offset > 0.0:
+        return motif.motif_pivot_offset
+
+    # If set endpoint doesn't exist, sums each motif note's beat position and duration to find their endpoint, selecting the highest value out of the sums and returning the float as a singular value
     max_beats = session.query(
         func.max(MotifNote.beat_position + MotifNote.duration)
     ).filter(MotifNote.motif_id == motif_id).scalar()
 
-    return max_beats or 0
+    return max_beats or 0.0

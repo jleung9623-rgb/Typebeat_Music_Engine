@@ -168,7 +168,6 @@ def build_blueprint_profile(session, genre_name=None):
         final_blueprint_profile.append({
             'block_position': block.block_position,
             'block_class': block.block_class,
-            'block_beat_length': block.block_beat_length
         })
 
     return final_blueprint_profile

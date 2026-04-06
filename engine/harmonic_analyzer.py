@@ -1,4 +1,4 @@
-from database.models import MotifNote
+from database.models import MotifNote, Motif
 
 def map_pitch_to_scale(raw_pitch, target_root, target_intervals):
     """
@@ -55,10 +55,13 @@ def transpose_motif(session, master_timeline, track_profile):
     # Iterates through each motif in the composition timeline, mapping track-level pitch data before applying transposition
     for motif_id in master_timeline:
 
-        # Fetches the notes for all motifs within the timeline to be transposed
+        # Fetches the phrase latency of each motif used to calculate the absolute timing of the timeline
+        motif_record = session.query(Motif).filter(Motif.id == motif_id).first()
+        phrase_latency = motif_record.phrase_latency if motif_record else 0.0
+
+        # Fetches the notes for all motifs within the timeline to be transposed, skipping over the motif if it has no notes
         motif_notes = session.query(MotifNote).filter(MotifNote.motif_id == motif_id).all()
-        
-        # Skips over the motif if it has no notes
+
         if not motif_notes:
             continue
 
@@ -82,7 +85,7 @@ def transpose_motif(session, master_timeline, track_profile):
                 transposed_pitch = map_pitch_to_scale(note.pitch_value, target_root, target_intervals)
 
             # Calculates the absolute current time
-            absolute_beat = current_song_beat + note.beat_position
+            absolute_beat = current_song_beat + note.beat_position + phrase_latency
 
             # Calculates the motif duration to advance the global clock
             note_end = note.beat_position + note.duration
