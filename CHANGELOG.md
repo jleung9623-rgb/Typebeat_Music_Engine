@@ -1,13 +1,25 @@
-#### [7.2.2-alpha] - 2026-04-06
+#### [7.2.2-alpha] - 2026-04-12
 
 #### Added
 - Unique constraint added to `MotifStat` column `motif_id` in `models.py`
+- `data_inflow/transitions_upload.py` for mapping motif transitions
+- `data/sample_data_inflow/mock_motif_upload.py` for mass-uploading "junk" motifs ahead of testing
+- Introduced `motif_tag` string column to the `Motif` table in `models.py`
+- Mandatory session rollbacks for junction table mapping in `motifs_upload.py` and `metadata_sb_upload.py`
+- Dedicated `build_chord_cache` method and initialization check within `upload_interface.py`
+- Updated **ADR** entries #27-32
 
 #### Changed
 - Fixed `harmonic_analyzer.py` and `markov_engine.py` logic to include motif-level **phrase latency** and **pivot offset** values
+- Fixed Track-level Transposition logic in `harmonic_analyzer.py`
+- Transitioned to a unified batch uploader in `motifs_upload.py`
+- Renamed `CSVUploader` classes in `motifs_upload.py` and `metadata_sb_upload.py`
+- Fixed SectionClass verification logic in `markov_engine.py`
+- Moved `session.close()` calls in orchestrator scripts to primary execution scope
 
 #### Removed
--
+- Replaced `print()` statements with hard aborts for junction mapping instances in `motifs_upload.py` and `metadata_sb_upload.py`
+- Removed isolated motif upload function in `motifs_upload.py`
 
 #### [7.2.1-alpha] - 2026-04-03
 

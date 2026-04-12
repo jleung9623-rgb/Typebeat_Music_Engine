@@ -1,4 +1,4 @@
-from database.models import MotifNote, Motif
+from database.models import MotifNote, Motif, track_motif_map
 
 def map_pitch_to_scale(raw_pitch, target_root, target_intervals):
     """
@@ -52,6 +52,16 @@ def transpose_motif(session, master_timeline, track_profile):
     # Initializes global 'clock' to keep track of current temporal position
     current_song_beat = 0.0
 
+    # Retrieves the track-specific origin data for use in the final MIDI output
+    track_id = track_profile.get('track_id')
+
+    if not track_id:
+        raise ValueError("ERROR: track_id missing from track_profile. Cannot query junction modifiers.")
+
+    target_root = track_profile.get('default_root_note')
+    target_intervals = track_profile.get('intervals')
+    midi_channel = track_profile.get('midi_channel')
+
     # Iterates through each motif in the composition timeline, mapping track-level pitch data before applying transposition
     for motif_id in master_timeline:
 
@@ -61,28 +71,32 @@ def transpose_motif(session, master_timeline, track_profile):
 
         # Fetches the notes for all motifs within the timeline to be transposed, skipping over the motif if it has no notes
         motif_notes = session.query(MotifNote).filter(MotifNote.motif_id == motif_id).all()
-
+        
         if not motif_notes:
             continue
 
-        # Retrieves the track-specific origin scale data for use in the final MIDI output
-        target_root = track_profile.get('default_root_note')
-        target_intervals = track_profile.get('intervals')
+        # Fetches the motif-level transposition value
+        shift_scalar = session.query(track_motif_map.c.octave_shift).filter(
+            track_motif_map.c.track_id == track_id,
+            track_motif_map.c.motif_id == motif_id
+        ).scalar()
+        motif_octave_shift = shift_scalar if shift_scalar else 0
 
-        # Retrieves the track's MIDI channel assignment for use in the final MIDI output
-        midi_channel = track_profile.get('midi_channel')
-
-        # Initializes the maximum possible motif beat length
+        # Initializes the maximum possible motif beat length as a scalar used to advance the global clock
         max_motif_beat = 0.0
 
-        # Calculates the transposed pitch before assigning it to the final MIDI output
+        # Iterates through each motif, transposing them before assigning them to the final MIDI output
         for note in motif_notes:
 
             # Bypasses transposition for percussion instruments which are assigned to MIDI channel 10
             if midi_channel == 10:
-                transposed_pitch = note.pitch_value
+                final_pitch = note.pitch_value
             else:
+                # Applies track-level transposition before motif-level transposition to calculate the final pitch
                 transposed_pitch = map_pitch_to_scale(note.pitch_value, target_root, target_intervals)
+
+                # Keeps final pitch in a range of 127 to account for the frequency limitations of standard synthesizers and MIDI readers
+                final_pitch = max(0, min(127, transposed_pitch + (motif_octave_shift * 12)))
 
             # Calculates the absolute current time
             absolute_beat = current_song_beat + note.beat_position + phrase_latency
@@ -96,7 +110,7 @@ def transpose_motif(session, master_timeline, track_profile):
             final_midi_data.append({
                 'motif_id': motif_id,
                 'midi_channel': midi_channel,
-                'pitch': transposed_pitch,
+                'pitch': final_pitch,
                 'beat_position': absolute_beat,
                 'duration': note.duration,
                 'micro_offset': note.micro_offset

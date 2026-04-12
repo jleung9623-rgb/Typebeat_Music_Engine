@@ -2,8 +2,14 @@ from database.connection import SessionLocal
 from database.models import Chord, ChordNote, Scale
 
 class HarmonicMap:
+    """
+    Seeds data for the musical dictionary (Or the "Static Library") that the engine will utilize.
+    Includes chromatic notes, standard chords and scale formulas
+    """
 
     def seed_basic_chords(self):
+        """Uploads both note-level and chord-level harmonic elements to SQL database."""
+
         # Opens session using centralized foundation
         session = SessionLocal()
 
@@ -35,13 +41,13 @@ class HarmonicMap:
         print("Seeding Chord Dictionary using centralized connection...")
         chords_added = 0
 
+        # Initializes required information to build each chord before adding the finished object to an upload queue, committing the changes when the queue is complete
         try:
             for i, root in enumerate(roots):
                 root_note = base_midi + i
 
                 for chord_type, intervals in chord_formulas.items():
 
-                    # Creates chord entry
                     new_chord = Chord(
                         chord_name = f"{root}-{chord_type}",
                         chord_class = chord_type,
@@ -66,6 +72,8 @@ class HarmonicMap:
             session.close()
 
     def seed_scales(self):
+        """Uploads standard scales and their respective intervals to SQL database."""
+
         # Open session using centralized foundation
         session = SessionLocal()
 
@@ -101,6 +109,7 @@ class HarmonicMap:
         print("Seeding Scales Dictionary using centralized connection...")
         scales_added = 0
 
+        # Initializes required information to build each scale before adding the finished object to an upload queue, committing the changes when the queue is complete
         try:
             for name, intervals in scale_formulas.items():
                 new_scale = Scale(

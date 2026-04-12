@@ -2,7 +2,7 @@ import pandas as pd
 from database.models import Artist, Genre, artist_genre_map, genre_track_map, genre_blueprint_map, Track, TrackClass, SongBlueprint, SectionClass
 from database.connection import SessionLocal
 
-class CSVUploader:
+class MetadataUploader:
     def __init__(self):
         """Initializes list of required upload fields and switchboard selection outcomes"""
 
@@ -90,6 +90,7 @@ class CSVUploader:
 
                     # If genre exists with no association to the artist, adds a link through the `artist_genre_map` junction table
                     if not junction_link:
+                        # Uses a savepoint to establish link to junction table, skipping over assignment of current motif and continuing if mapping it fails
                         try:
                             with session.begin_nested():
                                 link_init = artist_genre_map.insert().values(
@@ -99,7 +100,7 @@ class CSVUploader:
                                 )
                                 session.execute(link_init)
                         except Exception as e:
-                            print(f"Skipping duplicate or invalid link for artist {artist.id} to Genre {genre.id}.")
+                            raise ValueError(f"Junction mapping collision for Artist {artist.id} to Genre {genre.id}: {e}")
 
 
         return f"Successfully imported {len(df)} artists."
@@ -151,11 +152,11 @@ class CSVUploader:
                 genre_track_map.c.genre_id == genre.id,
                 genre_track_map.c.track_id == track.id
             ).first()
-            
 
             # If track exists with no association to the genre, adds a link through the `genre_track_map` junction table
             if not junction_link:
                 try:
+                    # Uses a savepoint to establish link to junction table, skipping over assignment of current motif and continuing if mapping it fails
                     with session.begin_nested():
                         link_init = genre_track_map.insert().values(
                             genre_id = genre.id,
@@ -164,7 +165,7 @@ class CSVUploader:
                         )
                         session.execute(link_init)
                 except Exception as e:
-                    print(f"Skipping duplicate or invalid link for Genre {genre.id} to Track {track.id}.")
+                    raise ValueError(f"Junction mapping collision for Genre {genre.id} to Track {track.id}: {e}")
 
         return f"Successfully imported {len(df)} tracks."
 
@@ -210,6 +211,7 @@ class CSVUploader:
              # If blueprint exists with no association to the genre, adds a link through the `genre_blueprint_map` junction table
             if not junction_link:
                 try:
+                    # Uses a savepoint to establish link to junction table, skipping over assignment of current motif and continuing if mapping it fails
                     with session.begin_nested():
                         link_init = genre_blueprint_map.insert().values(
                             genre_id = genre.id,
@@ -217,7 +219,7 @@ class CSVUploader:
                         )
                         session.execute(link_init)
                 except Exception as e:
-                    print(f"Skipping duplicate or invalid link for Genre {genre.id} to Blueprint Block {song_blueprint.id}.")
+                    raise ValueError(f"Junction mapping collision for Genre {genre.id} to Blueprint {song_blueprint.id}: {e}")
 
         return f"Successfully imported {len(df)} blueprints blocks."
     
@@ -233,4 +235,4 @@ class CSVUploader:
         return genre
 
 if __name__ == "__main__":
-    engine = CSVUploader()
+    engine = MetadataUploader()

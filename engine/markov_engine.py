@@ -125,8 +125,13 @@ def select_motif(session, track_id, blueprint_block, current_motif_id=None):
     # If there is an active motif ID to select, selects the next motif to use based on transitional data
     else:
 
-        # Fetches valid transition paths based on the current motif ID
-        valid_paths = session.query(Transition.to_motif_id, Transition.transition_weight).filter(Transition.from_motif_id == current_motif_id).all()
+        # Fetches valid transition paths, strictly filtering the target motif by the active blueprint block
+        valid_paths = session.query(Transition.to_motif_id, Transition.transition_weight)\
+            .join(Motif, Transition.to_motif_id == Motif.id)\
+            .filter(
+                Transition.from_motif_id == current_motif_id,
+                Motif.motif_class == blueprint_block
+            ).all()
 
         # Checks if there are available paths to choose from, returning a dead end for current block's generation if not
         if not valid_paths:

@@ -3,12 +3,11 @@ import sys
 
 # Imports logic from uploader faculties
 from data_inflow.harmonic_map import HarmonicMap
-from data_inflow.metadata_sb_upload import CSVUploader as MacroLibrary
-from data_inflow.motifs_upload import CSVUploader as DynamicLibrary
+from data_inflow.metadata_sb_upload import MetadataUploader as MacroLibrary
+from data_inflow.motifs_upload import MotifUploader as DynamicLibrary
 
 # Verifies the user's input matches a property in the Song Blueprint Enum constraints
 from database.connection import SessionLocal
-from database.models import SongBlueprint, SectionClass
 from sqlalchemy import text
 
 # Clears the user's terminal screen for improved visibility ahead of initializing the main menu
@@ -21,7 +20,7 @@ def main_menu():
         Lets the user select between 7 different upload types.
         Seeding programs used for implentation of musical theory data, A.K.A the "Static Library"
         Batch upload programs used for metadata and macro-level musical constraints
-        Specialized upload for Motif data and Markov chain foundations, A.K.A the "Dynamic Library"
+        Specialized batch upload for Motif data and Markov chain foundations, A.K.A the "Dynamic Library"
     """
 
     # Initializes SQLAlchemy classes representing the Typebeat Database
@@ -49,7 +48,7 @@ def main_menu():
         print(" 4. Batch Upload Genres")
         print(" 5. Batch Upload Tracks")
         print(" 6. Batch Upload Blueprints")
-        print(" 7. Upload Specialized Motif (Dynamic)")
+        print(" 7. Batch Upload Motifs")
         print(" 0. Exit")
         print("========================================")
 
@@ -65,8 +64,16 @@ def main_menu():
             print("\n--- SEEDING CHORDS ---")
             result = h_map.seed_basic_chords()
 
-            # Rebuilds the harmonic cache to reflect the newly seeded chord data for any upcoming motif uploads that rely on chord mapping
-            d_lib.chord_cache = d_lib.build_chord_cache() 
+            # Rebuilds the harmonic cache using a temporary session instance to reflect the newly seeded chord data for any upcoming motif uploads that rely on chord mapping
+            temp_session = SessionLocal()
+            try:
+                cache_result = d_lib.build_chord_cache(temp_session)
+                if cache_result['status'] == 'success':
+                    d_lib.chord_cache = cache_result['data']
+                else:
+                    print(f"\nChord seeding succeeded, but cache rebuild failed: {cache_result['message']}")
+            finally:
+                temp_session.close()
             
             print(f"\nRESULT: {result['message']}")
             input("\nChords seeded. Press Enter to Continue...")
@@ -98,37 +105,17 @@ def main_menu():
                 print(f"File not found: {path}")
             input("\nPress Enter to Return...")
 
-        # Input 7 - Allows user to bulk upload a CSV file of motifs and optionally, foundational transitions for Markov Chain development
+        # Input 7 - Allows user to bulk upload a CSV file of motifs
         elif choice == '7':
-            print("\n--- SPECIALIZED MOTIF UPLOAD ---")
-            path = input(f"Enter MOTIF CSV path: ").strip()
+            print("\n--- BATCH MOTIF UPLOAD ---")
+            path = input(f"Enter Batch Motif CSV path: ").strip()
             if not os.path.exists(path):
                 print("File not found.")
                 input("\nPress Enter to Return...")
                 continue
 
-            # Prompt user for "Class"" to label their upload motifs under
-            name = input("Motif Name (e.g. 'Trap_Lead_A'): ").strip()
-            print("Available Blueprint Classes: VERSE, CHORUS, OPENING, BUILD, BRIDGE, etc.")
-            m_class = input("Enter Motif Class: ").strip().upper()
-
             session = SessionLocal() # Initialize local session
             try:
-                # Converts the user's input into a Blueprint Enum-readable data type for the database query
-                valid_m_class = m_class.replace("-", "_").replace(" ", "_")
-                target_block_class = SectionClass[valid_m_class]
-
-                blueprint_exists = session.query(SongBlueprint).filter_by(
-                    block_class = target_block_class
-                ).first()
-
-                # Checks if a user has uploaded a blueprint block class matching their motif class input
-                if not blueprint_exists:
-                    print(f"\nERROR: No blueprints for '{m_class}' found in database.")
-                    print("Please upload a corresponding Blueprint (Choice 6) before adding motifs.")
-                    session.close() # Closes session and exits if validation fails
-                    continue
-
                 # Initializes Track ID to map the motif to
                 while True:
                     try:
@@ -136,26 +123,35 @@ def main_menu():
                         break
                     except ValueError:
                         print("ERROR: Target Track ID must be a valid integer.")
-
-                # Optional: Initializes transition (Previous motif ID) to set up Markov chains
+                
+                # Initializes phrase latency modifier
                 while True:
-                    from_id_input = input("From Motif ID (Optional - Enter to skip): ").strip()
-                    if not from_id_input:
-                        f_id = None
-                        break
                     try:
-                        f_id = int(from_id_input)
+                        phrase_latency_input = input("Phrase Latency (Optional - default is 0.0): ").strip()
+                        phrase_latency = float(phrase_latency_input) if phrase_latency_input else 0.0
                         break
                     except ValueError:
-                        print("ERROR: Motif ID must be a valid integrer or left blank.")
+                        print("ERROR: Phrase Latency must be a valid float.")
+
+                # Initializes motif pivot offset modifier
+                while True:
+                    try:
+                        pivot_offset_input = input("Motif Pivot Offset (Optional - default is 0.0): ").strip()
+                        motif_pivot_offset = float(pivot_offset_input) if pivot_offset_input else 0.0
+                        break
+                    except ValueError:
+                        print("ERROR: Motif Pivot Offset must be a valid float.")
+
+                transitions_csv_path = input("Transitions Override CSV Path (Optional - Press Enter to Skip): ").strip()
+                transitions_csv_path = transitions_csv_path if transitions_csv_path else None
 
                 # Uploads motif with the information provided
-                result = d_lib.upload_motif(
+                result = d_lib.upload_batch(
                     csv_file_path = path,
-                    motif_name = name,
-                    m_class_str = m_class,
                     track_id = t_id,
-                    from_motif_id = f_id,
+                    phrase_latency = phrase_latency,
+                    motif_pivot_offset = motif_pivot_offset,
+                    transitions_csv_path = transitions_csv_path,
                     session = session
                 )
 
@@ -167,15 +163,14 @@ def main_menu():
 
                 print(f"\nRESULT: {result['message']}")
 
-            # Checks if the user's input exists in the Blueprint Enum constraints
-            except KeyError:
-                print(f"\nERROR: '{m_class}' is not a valid Blueprint or Motif class.")
             # Checks for any outstanding/miscellaneous errors during upload, rolling back changes if found
             except Exception as e:
                 session.rollback()
                 print(f"\nERROR: {e}")
             finally:
-                session.close()  
+                session.close()
+
+            input("\nPress Enter to Return...")
 
 if __name__ == "__main__":
     main_menu()
