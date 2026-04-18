@@ -1,14 +1,27 @@
 import os
 import csv
 import random
-from database.models import SectionClass
+from database.models import SectionClass, Track
 from data_inflow.motifs_upload import MotifUploader
+from database.connection import SessionLocal
 
 
 def create_mock_motif_batch():
-    BATCH_SIZE = 10000
+    BATCH_SIZE = 50
     TEMP_CSV_PATH = "data/sample_data/temp_stress_test_motif.csv"
-    TARGET_TRACK_ID = 1
+    
+    # Initializes a local database session to query for valid track IDs to associate with the mock motif batch, selecting one at random for the upload process.
+    session = SessionLocal()
+    try:
+        valid_tracks = session.query(Track).all()
+        valid_track_ids = [track.id for track in valid_tracks]
+
+        if not valid_track_ids:
+            raise ValueError("Tracks table is empty. Tracks must be seeded before generating Motifs.")
+        
+        TARGET_TRACK_ID = random.choice(valid_track_ids)
+    finally:
+        session.close()
 
     # Creates the temporary output path for the CSV batch file
     os.makedirs(os.path.dirname(TEMP_CSV_PATH), exist_ok=True)

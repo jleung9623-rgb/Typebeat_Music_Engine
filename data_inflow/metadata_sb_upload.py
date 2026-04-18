@@ -226,7 +226,7 @@ class MetadataUploader:
     def get_genre(self, name, session):
         """Creates a temporary storage of all available genres for faster indexing during upload functions"""
         
-        # Returns genre_cache full of existing genre names if they exist, adds genre name to cache if it exists outside of the temp storage
+        # Returns genre cache full of existing genre names if they exist, adds genre name to cache if it exists outside of the temp storage
         if name in self.genre_cache:
             return self.genre_cache[name]
         genre = session.query(Genre).filter_by(genre_name=name).first()
