@@ -1,3 +1,25 @@
+#### [7.2.3-alpha] - 2026-04-20
+
+#### Added
+- New file `data/sample_data_inflow/mock_motif_upload.py` for testing motif upload pipeline
+- New file `requirements-dev.txt` file for dev-side unit testing
+- Added `Pytest` integration for basic unit testing
+- New file `data_inflow/transitions_upload.py` for mapping transitions as a supplement to `data_inflow/motifs_upload.py`
+- Added `motif_tag` column to the `Motif` table under `database/models.py` for higher-order stochastic logic and grouping for `data_inflow/transitions_upload.py`
+- Implemented logic within `engine/harmonic_analyzer.py` calculating a final transposed pitch that is within the standard frequency range of synthesizers and MIDI readers
+- Implemented logic initiating a temporary session within `main/upload_interface.py` to seed chord data for motif uploads
+- Updated **ADR** entries #28-37
+
+#### Changed
+- Changed junction link print statement guardrails in uploader scripts to `Raise ValueError` statements
+- Fixed missing junction link logic for `track_motif_map` table within `engine/harmonic_analyzer.py`
+- Fixed missing upload requirements for track-level scale data and missing junction link for `track_scale_map`
+- Fixed relationship between applying track-level and motif-level transposition logic in `engine/harmonic_analyzer.py`
+- Fixed transition logic within `engine/markov_engine.py` to select the next motif based on the Song Blueprint property `block_position`
+- Renamed CSVUploader elements within uploader functions to be more distinct
+- Fixed logic in `main/main.py` to include `phrase_latency` and `motif_pivot_offset` within the MIDI output generation
+- Fixed logic in `engine/data_initialization.py` to sanitize scale interval strings during the fetching process
+
 #### [7.2.2-alpha] - 2026-04-12
 
 #### Added

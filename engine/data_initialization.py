@@ -103,6 +103,12 @@ def build_track_profile(session, track_requests):
 
         if not scale:
             return None
+        
+        # Parses the string of the scale intervals, removing the commas and whitespace before converting them to integers. If the string is not properly formatted, raises an error.
+        try:
+            parsed_intervals = [int(step.strip()) for step in scale.intervals.split(',')]
+        except Exception as e:
+            raise ValueError(f"CRITICAL: Failed to parse interval string '{scale.intervals}' for track '{track.track_name}': {e}")
 
         # Builds the final track profile before returning the output
         final_track_profile.append({
@@ -114,7 +120,7 @@ def build_track_profile(session, track_requests):
             'scale_id': scale.id,
             'scale_name': scale.scale_name,
             'default_root_note': request.get('root_override') or scale.default_root_note,
-            'intervals': scale.intervals
+            'intervals': parsed_intervals
         })
 
     return final_track_profile

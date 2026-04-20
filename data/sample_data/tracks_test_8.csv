@@ -1,0 +1,9 @@
+track_name,track_class,genre_name,midi_channel,instrument_name,patch_number,track_motif_limit,scale_name
+Trap_Piano,MELODIC_LEAD,Trap,1,Dark Grand Piano,1.0,2,Natural Minor (Aeolian)
+808_Sub,BASS,Trap,2,Distorted 808,39.0,1,Natural Minor (Aeolian)
+Trap_Drums,PERCUSSION,Trap,10,Trap Kit,,4,Natural Minor (Aeolian)
+Trap_Bells,MELODIC_LEAD,Trap,3,Music Box,10.0,2,Natural Minor (Aeolian)
+Synth_Pad,PAD_ATMOSPHERE,Trap,4,Warm Pad,89.0,2,Natural Minor (Aeolian)
+Brass_Stabs,FX,Trap,5,Synth Brass,62.0,1,Natural Minor (Aeolian)
+Trap_Strings,PAD_ATMOSPHERE,Trap,6,String Ensemble,48.0,2,Natural Minor (Aeolian)
+Trap_Flute,MELODIC_LEAD,Trap,7,Flute,73.0,2,Natural Minor (Aeolian)

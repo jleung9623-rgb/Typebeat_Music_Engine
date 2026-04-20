@@ -1,4 +1,0 @@
-track_name,track_class,genre_name,midi_channel,instrument_name,patch_number,track_motif_limit
-Trap_Piano,MELODIC_LEAD,Trap,1,Dark Grand Piano,1,2
-808_Sub,BASS,Trap,2,Distorted 808,39,1
-Trap_Drums,PERCUSSION,Trap,10,Trap Kit,,4

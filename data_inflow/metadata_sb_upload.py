@@ -1,5 +1,5 @@
 import pandas as pd
-from database.models import Artist, Genre, artist_genre_map, genre_track_map, genre_blueprint_map, Track, TrackClass, SongBlueprint, SectionClass
+from database.models import Artist, Genre, artist_genre_map, genre_track_map, genre_blueprint_map, track_scale_map, Track, TrackClass, SongBlueprint, SectionClass, Scale
 from database.connection import SessionLocal
 
 class MetadataUploader:
@@ -13,7 +13,7 @@ class MetadataUploader:
         self.upload_requirements = {
             "artists": ['artist_name'],
             "genres": ['genre_name', 'default_tempo', 'time_signature'],
-            "tracks": ['track_name', 'track_class', 'genre_name', 'midi_channel'],
+            "tracks": ['track_name', 'track_class', 'genre_name', 'midi_channel', 'scale_name'],
             "blueprints": ['genre_name', 'block_class', 'block_position'],
         }
 
@@ -148,24 +148,47 @@ class MetadataUploader:
                 session.flush() # Syncs with DB before establishing junction table relationship
             
             # Initializes the relationship with a track through a genre -> track junction table
-            junction_link = session.query(genre_track_map).filter(
+            track_junction_link = session.query(genre_track_map).filter(
                 genre_track_map.c.genre_id == genre.id,
                 genre_track_map.c.track_id == track.id
             ).first()
 
             # If track exists with no association to the genre, adds a link through the `genre_track_map` junction table
-            if not junction_link:
+            if not track_junction_link:
                 try:
                     # Uses a savepoint to establish link to junction table, skipping over assignment of current motif and continuing if mapping it fails
                     with session.begin_nested():
-                        link_init = genre_track_map.insert().values(
+                        g_link_init = genre_track_map.insert().values(
                             genre_id = genre.id,
                             track_id = track.id,
                             selection_weight = row.get('selection_weight', 1.0)
                         )
-                        session.execute(link_init)
+                        session.execute(g_link_init)
                 except Exception as e:
                     raise ValueError(f"Junction mapping collision for Genre {genre.id} to Track {track.id}: {e}")
+                
+            scale = session.query(Scale).filter_by(scale_name=row['scale_name']).first()
+
+            # Repeats the initialization and junction mapping process for the track's associated scale, through the track_scale_map junction table
+            if not scale:
+                print(f"WARNING: Scale '{row['scale_name']}' not found in database. Track '{track.track_name}' will be orphaned harmonically.")
+            else:
+                scale_junction_link = session.query(track_scale_map).filter(
+                    track_scale_map.c.track_id == track.id,
+                    track_scale_map.c.scale_id == scale.id
+                ).first()
+
+                if not scale_junction_link:
+                    try:
+                        with session.begin_nested():
+                            s_link_init = track_scale_map.insert().values(
+                                track_id = track.id,
+                                scale_id = scale.id,
+                                is_default = True
+                            )
+                            session.execute(s_link_init)
+                    except Exception as e:
+                        raise ValueError(f"Junction mapping collision for Track {track.id} to Scale {scale.id}: {e}")
 
         return f"Successfully imported {len(df)} tracks."
 
@@ -203,21 +226,21 @@ class MetadataUploader:
                 session.flush() # Syncs with DB before establishing junction table relationship
 
             # Initializes the relationship with a blueprint through a genre -> blueprint junction table
-            junction_link = session.query(genre_blueprint_map).filter(
+            blueprint_junction_link = session.query(genre_blueprint_map).filter(
                 genre_blueprint_map.c.genre_id == genre.id,
                 genre_blueprint_map.c.blueprint_id == song_blueprint.id
             ).first()
 
              # If blueprint exists with no association to the genre, adds a link through the `genre_blueprint_map` junction table
-            if not junction_link:
+            if not blueprint_junction_link:
                 try:
                     # Uses a savepoint to establish link to junction table, skipping over assignment of current motif and continuing if mapping it fails
                     with session.begin_nested():
-                        link_init = genre_blueprint_map.insert().values(
+                        b_link_init = genre_blueprint_map.insert().values(
                             genre_id = genre.id,
                             blueprint_id = song_blueprint.id
                         )
-                        session.execute(link_init)
+                        session.execute(b_link_init)
                 except Exception as e:
                     raise ValueError(f"Junction mapping collision for Genre {genre.id} to Blueprint {song_blueprint.id}: {e}")
 
