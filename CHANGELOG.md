@@ -1,9 +1,19 @@
+#### [7.2.3-alpha] - 2026-05-03
+
+#### Added
+- New `rest_duration` and `rest_suffix` columns added to `database/models.py`
+
+#### Changed
+- Fixed logic in `data_inflow/midi_extractor.py` and `data_inflow/motifs_upload.py` to fit new rest columns and phrase latency
+- Fixed logic in `engine` files to accommodate rest data integration
+
 #### [7.2.3-alpha] - 2026-04-20
 
 #### Added
 - New file `data/sample_data_inflow/mock_motif_upload.py` for testing motif upload pipeline
 - New file `requirements-dev.txt` file for dev-side unit testing
 - Added `Pytest` integration for basic unit testing
+- Added testing files for main execution loop `test_harmonic_analyzer.py`, `test_markov_engine.py`, `test_midi_builder.py`
 - New file `data_inflow/transitions_upload.py` for mapping transitions as a supplement to `data_inflow/motifs_upload.py`
 - Added `motif_tag` column to the `Motif` table under `database/models.py` for higher-order stochastic logic and grouping for `data_inflow/transitions_upload.py`
 - Implemented logic within `engine/harmonic_analyzer.py` calculating a final transposed pitch that is within the standard frequency range of synthesizers and MIDI readers

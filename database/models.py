@@ -144,6 +144,10 @@ class Motif(Base):
     motif_tag = Column(String(50))                              # Optional sub-classification for heuristic transition grouping
     phrase_latency = Column(Float, nullable=False, default=0.0, server_default="0.0")       # Applies phrase or sequence-level human timing to the motif
     motif_pivot_offset = Column(Float, nullable=False, default=0.0, server_default="0.0")   # "Boundary Line" of a motif, shorter motifs loop until this number is reached, longer motifs are cut off at this point
+    
+    rest_duration = Column(Float, nullable=False, default=0.0, server_default="0.0")    # Rest value in beats used for generation logic
+    rest_suffix = Column(String(50), nullable=False, default="NONE", server_default="NONE")      # Categorical Metadata tag for SQL switchboard
+    
     created_at = Column(TIMESTAMP, server_default=func.now())   # Log for creation (Upload) timestamp of motif (Allows the DB to handle the timestamp automatically)
     
     notes = relationship("MotifNote", back_populates="motif", cascade="all, delete-orphan")

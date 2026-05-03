@@ -67,11 +67,15 @@ def transpose_motif(session, master_timeline, track_profile):
 
         # Fetches the phrase latency of each motif used to calculate the absolute timing of the timeline
         motif_record = session.query(Motif).filter(Motif.id == motif_id).first()
+        if not motif_record:
+            continue
+        
         phrase_latency = motif_record.phrase_latency if motif_record else 0.0
+
+        rest_duration = motif_record.rest_duration # Fetches the motif's rest duration found through the MIDI extractor
 
         # Fetches the notes for all motifs within the timeline to be transposed, skipping over the motif if it has no notes
         motif_notes = session.query(MotifNote).filter(MotifNote.motif_id == motif_id).all()
-        
         if not motif_notes:
             continue
 
@@ -102,7 +106,7 @@ def transpose_motif(session, master_timeline, track_profile):
             absolute_beat = current_song_beat + note.beat_position + phrase_latency
 
             # Calculates the motif duration to advance the global clock
-            note_end = note.beat_position + note.duration
+            note_end = phrase_latency + note.beat_position + note.duration
             if note_end > max_motif_beat:
                 max_motif_beat = note_end
 
@@ -116,7 +120,7 @@ def transpose_motif(session, master_timeline, track_profile):
                 'micro_offset': note.micro_offset
             })
 
-        # Advances global clock
-        current_song_beat += max_motif_beat
+        # Advances the global clock by the motif's max beat length plus its rest duration to create space between motifs in the timeline
+        current_song_beat += (max_motif_beat + rest_duration)
 
     return final_midi_data

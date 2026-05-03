@@ -149,12 +149,16 @@ def get_motif_duration(session, motif_id):
     # Queries the designated Motif ID, returning a set endpoint for the motif if available
     motif = session.query(Motif).filter(Motif.id == motif_id).first()
 
-    if motif and motif.motif_pivot_offset > 0.0:
-        return motif.motif_pivot_offset
+    if motif:
+        phrase_latency = motif.phrase_latency if motif.phrase_latency else 0.0
+        base_duration = motif.motif_pivot_offset if motif.motif_pivot_offset > 0.0 else 0.0
 
-    # If set endpoint doesn't exist, sums each motif note's beat position and duration to find their endpoint, selecting the highest value out of the sums and returning the float as a singular value
-    max_beats = session.query(
-        func.max(MotifNote.beat_position + MotifNote.duration)
-    ).filter(MotifNote.motif_id == motif_id).scalar()
+        if base_duration == 0.0:
+            max_beats = session.query(
+                func.max(MotifNote.beat_position + MotifNote.duration)
+            ).filter(MotifNote.motif_id == motif_id).scalar()
+            base_duration = max_beats or 0.0
+        
+        return phrase_latency + base_duration + motif.rest_duration
 
-    return max_beats or 0.0
+    return 0.0
