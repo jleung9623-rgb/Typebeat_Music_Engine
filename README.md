@@ -119,4 +119,4 @@ Version 7.2.1 represents a complete transition from a monolithic "proof of conce
 
 6. **SQL Database Architecture**: The Typebeat program's foundation lies in a relational MySQL database optimized for **stochastic memory persistence**.
 
-* **Visual Schema**: [View Interactive ERD on dbdiagram.io](https://dbdiagram.io/d/Typebeat-v7-2-Final-69d010d38089629684170028)
+* **Visual Schema**: [View Interactive ERD on dbdiagram.io](https://dbdiagram.io/d/Typebeat-V7-2-3-Schema-69f79ff8c6a36f9c1bedf51d)
