@@ -1,3 +1,14 @@
+#### [7.3-alpha] - 2026-05-10
+
+#### Added
+- `ml` folder for neural engine modules
+- `ml/model_architecture.py` using PyTorch to define the N-Dimensional neural space
+- `ml/training.py` for defining weighted traversal
+- `ml/typebeat_embedding_model.pt` added as a library of embed weights
+
+#### Changed
+- Updated `data_inflow/motifs_upload.py` to utilize `Qdrant` and `PyTorch` for simultaneous neural mapping
+
 #### [7.2.3-alpha] - 2026-05-03
 
 #### Added

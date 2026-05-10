@@ -142,13 +142,12 @@ class Motif(Base):
     sequence_data: str = Column(Text, nullable=False)           # type: ignore (Taxonomy Token to classify motifs using their IDs and Enum labels)
     motif_class = Column(Enum(SectionClass), nullable=False)    # Motif classification used to match corresponding blueprint container label
     motif_tag = Column(String(50))                              # Optional sub-classification for heuristic transition grouping
-    phrase_latency = Column(Float, nullable=False, default=0.0, server_default="0.0")       # Applies phrase or sequence-level human timing to the motif
-    motif_pivot_offset = Column(Float, nullable=False, default=0.0, server_default="0.0")   # "Boundary Line" of a motif, shorter motifs loop until this number is reached, longer motifs are cut off at this point
-    
-    rest_duration = Column(Float, nullable=False, default=0.0, server_default="0.0")    # Rest value in beats used for generation logic
-    rest_suffix = Column(String(50), nullable=False, default="NONE", server_default="NONE")      # Categorical Metadata tag for SQL switchboard
-    
-    created_at = Column(TIMESTAMP, server_default=func.now())   # Log for creation (Upload) timestamp of motif (Allows the DB to handle the timestamp automatically)
+    phrase_latency = Column(Float, nullable=False, default=0.0, server_default="0.0")               # Applies phrase or sequence-level human timing to the motif
+    motif_pivot_offset = Column(Float, nullable=False, default=0.0, server_default="0.0")           # "Boundary Line" of a motif, shorter motifs loop until this number is reached, longer motifs are cut off at this point
+    rest_duration = Column(Float, nullable=False, default=0.0, server_default="0.0")                # Rest value in beats used for generation logic
+    rest_suffix = Column(String(50), nullable=False, default="NONE", server_default="NONE")         # Categorical Metadata tag for SQL switchboard
+    created_at = Column(TIMESTAMP, server_default=func.now())       # Log for creation (Upload) timestamp of motif (Allows the DB to handle the timestamp automatically)
+    vector_id = Column(String(36), unique=True, nullable=True)      # Unique identifier for corresponding motif vector in Qdrant Vector Database (Used to link SQL records to their respective vectors for generation logic)
     
     notes = relationship("MotifNote", back_populates="motif", cascade="all, delete-orphan")
     stats = relationship("MotifStat", back_populates="motif", cascade="all, delete-orphan", uselist=False)

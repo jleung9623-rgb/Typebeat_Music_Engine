@@ -1,4 +1,4 @@
-# Typebeat Musical Governance AI V7.2.3 (Setting Up For a Neurosymbolic Transition) --- Last Updated on 05/03/2026
+# Typebeat Musical Governance AI V7.2.3 (Neural Integration Phase I) --- Last Updated on 05/10/2026
 
 ## **Quick Start**
 
@@ -44,22 +44,27 @@ The engine requires **Python 3.10+** (for union type hinting support) and a **My
     python scripts/metadata_sb_upload.py
 ```
 
-7. **Optional: Convert MIDI Files Into CSV Format**
+7. **Compile Neural Architecture**
+```bash
+    python ml/model_architecture.py
+```
+
+8. **Optional: Convert MIDI Files Into CSV Format**
 ```bash
     python scripts/midi_extractor.py
 ```
 
-8. **Upload Dynamic Motifs**
+9. **Upload Dynamic Motifs**
 ```bash
     python scripts/motifs_upload.py
 ```
 
-9. **Optional: Access Unified Upload Interface**
+10. **Optional: Access Unified Upload Interface**
 ```bash
     python main/upload_interface.py
 ```
 
-10. **Access The Typebeat Program**
+11. **Access The Typebeat Program**
 ```bash
     python main/main.py
 ```
@@ -84,6 +89,10 @@ The engine requires **Python 3.10+** (for union type hinting support) and a **My
 
 * **Dedicated Motif Data Pipeline**: Establishes an offline path for motif data inflow by allowing the user to parse MIDI files as an input through `midi_extractor.py` to break the note data down into a digestible format that the database would accept.
 
+* **Neuro-Symbolic Spatial Navigation**: Replaces discrete N+1 relational queries with continuous vector traversal. Variable-length MIDI arrays are passed through a `TypebeatLSTMEncoder`, collapsing the spatial footprint into 256-D coordinates.
+
+* **Contrastive Harmonic Training**: The vector geometry is not unsupervised. The engine utilizes a `TripletMarginLoss` optimization loop to mathematically force the PyTorch model to cluster harmonically compatible motifs while repelling discordant progressions, subordinating neural representation to deterministic music theory.
+
 ### Core Technologies
 
 #### Database & Environment
@@ -101,6 +110,10 @@ The engine requires **Python 3.10+** (for union type hinting support) and a **My
 #### Testing & Validation
 * **pytest>=8.0.0**: Execution framework for isolated unit testing and continuous integration validation.
 
+#### Neural & Vector Infrastructure (New)
+* **torch>=2.0.0**: Executes the PyTorch tensor mathematics and Contrastive Learning (Triplet Margin Loss) optimization.
+* **qdrant-client>=1.0.0**: Handles the spatial indexing and nearest-neighbor traversal for the 256-dimensional motif vectors.
+
 ### Description
 
 The Typebeat Musical Governance AI is a symbolic musical engine designed to generate musically coherent MIDI sequences across diverse genres using Stochastic Logic and state-based navigation.
@@ -117,6 +130,8 @@ Version 7.2.1 represents a complete transition from a monolithic "proof of conce
 
 5. **The Data Inflow Engine (data-inflow)**: A comprehensive sub-set of program files that serve to upload both static and dynamic types of data directly to the SQL server. Core processes are segmented based on the specific faculties of the Typebeat Engine they address and the nature of their in-database table relationships within the data network.
 
-6. **SQL Database Architecture**: The Typebeat program's foundation lies in a relational MySQL database optimized for **stochastic memory persistence**.
+6. **Polyglot Database Architecture**: The engine operates a distributed dual-write system. 
+    * **MySQL (Relational)**: Handles the discrete, ACID-compliant taxonomy of motifs, human-verified transitions, and scale aliases.
+    * **Qdrant (Spatial)**: A localized vector index (`./qdrant_db`) storing the 256-dimensional tensor coordinates of every motif, enforcing spatial harmonic similarity via Cosine Distance. Data synchronization between the two databases is governed by a strict Compensating Transaction protocol.
 
-* **Visual Schema**: [View Interactive ERD on dbdiagram.io](https://dbdiagram.io/d/Typebeat-V7-2-3-Schema-69f79ff8c6a36f9c1bedf51d)
+* **Visual Schema**: [View Interactive ERD on dbdiagram.io](https://dbdiagram.io/d/Typebeat-V7-3-6a00e3c77a923b94726ee9a7)
