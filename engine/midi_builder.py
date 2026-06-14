@@ -52,9 +52,10 @@ def build_midi_file(global_midi_data, file_name, metadata, output_dir):
             start_ticks = int((note['beat_position'] + note.get('micro_offset', 0.0)) * ticks_per_beat)
             end_ticks = int((note['beat_position'] + note.get('micro_offset', 0.0) + note['duration']) * ticks_per_beat)
 
-            pitch = int(note['pitch'])
+            # Safely extracts the procedural 'pitch_value', falling back to legacy 'pitch' if necessary
+            pitch = int(note.get('pitch_value', note.get('pitch')))
 
-            midi_events.append({'type': 'note_on', 'time': start_ticks, 'pitch': pitch, 'velocity': 100})
+            midi_events.append({'type': 'note_on', 'time': start_ticks, 'pitch': pitch, 'velocity': note.get('velocity', 100)})
             midi_events.append({'type': 'note_off', 'time': end_ticks, 'pitch': pitch, 'velocity': 0})
 
         midi_events.sort(key=lambda x: x['time'])

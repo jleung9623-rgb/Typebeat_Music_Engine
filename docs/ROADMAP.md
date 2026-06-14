@@ -10,3 +10,4 @@
 * Heavier encryption ahead of a public-facing model
 * Integrate 'AuthN' and 'AuthZ' into program
 * Import NumPy, PyTorch libraries for neuro-symbolic transition
+* Hugging Face model implementation for prompt translations

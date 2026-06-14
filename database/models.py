@@ -164,6 +164,7 @@ class MotifNote(Base):
     beat_position = Column(Float, nullable=False)   # Current beat offset of motif note
     duration = Column(Float, nullable=False)        # Duration of motif note
     micro_offset = Column(Float, nullable=False, default=0.0, server_default="0.0")     # Applies note-level human timing
+    velocity = Column(Integer, nullable=False, default=100)
 
     chord = relationship("Chord", back_populates="motif_notes")
     motif = relationship("Motif", back_populates="notes")
